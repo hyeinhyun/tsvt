@@ -1,11 +1,9 @@
-import util
 import sys
 import re
 import requests
 import urllib.parse
 import os
 import json
-#Util class for twitch-dl
 
 #Fancy!
 class bcolors:
@@ -47,9 +45,6 @@ def getAccessToken(video_id):
     u = urllib.request.urlopen(response)
     c = u.read().decode('utf-8')
     js = json.loads(c)
-    print('===')
-    print(js)
-    print('===')
     return {"token": js['token'], "sig": js['sig']}
 
 #Formatting the download url
@@ -66,31 +61,17 @@ def getDownloadUrl(video_id):
 					"&cdm=wv"
     return download_url
 
-def downloadVideo(video_id):
+def downloadVideo(video_id,v_stime,v_etime):
     video_infos = getVideoInfo(video_id)
     video_title = "'" + video_infos['title'] + "'"
-    command = "ffmpeg -i '"+ getDownloadUrl(video_id) +"' -ss {} -t {} -v quiet -stats -acodec copy -vcodec copy ".format()+ str(video_title) + ".mp4"
+    command = "ffmpeg -i '"+ getDownloadUrl(video_id) +"' -ss {} -t {} -vn -acodec libmp3lame -ar 44.1k -ac 2 -ab 320k ".format(v_stime,v_etime)+ './dataset/'+str(video_title) + ".wav"
     os.system(command)
+def main(video_id,v_stime,v_etime):
+    #Arrays for video queue
+    match = []
+    #video_infos = getVideoInfo(video_id)
+    downloadVideo(video_id,v_stime,v_etime)  
 
 if __name__ == "__main__":
+    main('496371424',0,10)
 
-#Arrays for video queue
-match = []
-
-print(util.bcolors.WARNING + "\ntwitch-dl ~ https://github.com/0xf77/twitch-dl" + util.bcolors.ENDC + "\n")
-
-if len(sys.argv) < 2:
- 	print(util.bcolors.FAIL + "[e] No URL to download, use: https://www.twitch.tv/videos/..." + util.bcolors.ENDC)
- 	quit()
-
-for videos in sys.argv:
-	if re.findall(r'\d+', videos):
-		match.append(re.findall(r'\d+', videos)[0])
-                #print(match)
-print(util.bcolors.WARNING + "It could take some seconds to start the download!" + util.bcolors.ENDC)
-for video_id in match:
-	video_infos = util.getVideoInfo(video_id)
-	print(util.bcolors.OKGREEN + "Downloading: " + video_infos['title'] + " from " +util.bcolors.ENDC)
-	util.downloadVideo(video_id)
-
-print(util.bcolors.FAIL + "Bye! ❤️" + util.bcolors.ENDC)

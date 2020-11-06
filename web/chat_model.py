@@ -49,8 +49,7 @@ class LangModel(nn.Module):
         self.output.bias.data.zero_()
 
     def forward(self, text):
-        text.cuda()
-        h0 = ( Variable(torch.zeros(3, text.size(0), 128)).cuda(),  Variable(torch.zeros(3, text.size(0), 128)).cuda())
+        h0 = ( Variable(torch.zeros(3, text.size(0), 128)),  Variable(torch.zeros(3, text.size(0), 128)))
 
         lang_feature, hn = self.lang(text, h0 )
         lang_feature = lang_feature[:,-1,:]
@@ -63,7 +62,7 @@ class chat_ds(data.Dataset):
     def __init__(self,d_type):
         self.d_type=d_type
 
-        with open('./chat.json','rb') as f2:  
+        with open('./dataset/chat.json','rb') as f2:  
             self.text=json.load(f2)
         if d_type=='test':
             self.sample = ['test']
@@ -89,23 +88,21 @@ class chat_ds(data.Dataset):
             return win_text,str(game_id)
 def main():
     ###### model load #####
-    model=LangModel().cuda()
-    criterion = nn.CrossEntropyLoss().cuda()
+    model=LangModel()
 
 
     test=chat_ds('test')
     test_loader=torch.utils.data.DataLoader(test,batch_size=1)
-    dataset='./chat_best'
-    checkpoint=torch.load(dataset,map_location='cuda:0')
+    dataset='./weights/chat_best'
+    checkpoint=torch.load(dataset)
     model.load_state_dict(checkpoint)
-    model.cuda()
     model.eval()
 
     result={}
     with torch.no_grad():
         for it, (text,game_id) in enumerate(test_loader):
             inputs=linesToTensor(text)
-            inputs = inputs.cuda()
+            inputs = inputs
             output=model(inputs)
             if game_id[0] not in result.keys():
                 print(game_id[0])
@@ -113,5 +110,5 @@ def main():
 
             else:
                 result[game_id[0]]+=[(output[0]).tolist()]
-    with open('./chat_features.json','w') as f:
+    with open('./dataset/chat_features.json','w') as f:
         json.dump(result,f)

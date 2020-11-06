@@ -15,6 +15,7 @@ import pandas as pd
 import math
 import chat_model
 file=open('test.txt',"w",encoding="utf-8")
+ClientId = "pnbcpj842zq89uy7hlhkakepr6xej7" # Client id 추가 #
 
 
 def collectClip(v_id,  Clientid,v_stime,v_etime):
@@ -27,7 +28,7 @@ def collectClip(v_id,  Clientid,v_stime,v_etime):
     c = u.read().decode('utf-8')
     js = json.loads(c)
     #print(js)
-    f=open(v_id+'.txt',"w",encoding="utf-8")
+    f=open('./dataset/'+v_id+'.txt',"w",encoding="utf-8")
 
     return collectChat(js, Clientid, f,v_id,v_stime,v_etime)
 
@@ -115,26 +116,12 @@ def makeChat(result,dur,v_stime):
         chat[math.floor(float(i))-v_stime]+=str(chat_data['message'][idx])
     
     data['test']=chat
-    with open('chat.json', 'w') as f:
+    with open('./dataset/chat.json', 'w') as f:
         json.dump(data, f, indent=2)
     print('=========== Chat End===================')
                 
 if __name__ == "__main__":
 
-#     with open('video_list.txt') as f:
-#         v_li=f.readlines()
-#     for i in v_li:
-#         print(i)
-#         v_id=i
-#         file_path=v_id+'.txt'
-#         file = open(file_path, "w", encoding="utf-8")
-#         Limit = 1
-#         ClientId = "pnbcpj842zq89uy7hlhkakepr6xej7" # Client id 추가 #
-#         collectClip(v_id, ClientId, file)
-#         file.close()
-
-    file=open('test.txt',"w",encoding="utf-8")
-    ClientId = "pnbcpj842zq89uy7hlhkakepr6xej7" # Client id 추가 #
 
     collectClip("496371424",ClientId,0,1000)
     print('===========Model train================')    
