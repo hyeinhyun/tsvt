@@ -23,19 +23,19 @@ class Mul_data(data.Dataset):
     def __init__(self,d_type):
         self.d_type=d_type
         if d_type=='test':
-            with open('./dataset/'+gameId+'_chat_features.json',"rb") as f1:  
-                self.chat_result=json.load(f1)
-        with open('./dataset/'+gameId+'_audio.pickle',"rb") as f3:  
-            self.audio=pickle.load(f3)
-        self.audio_result={}
-        self.audio_result['test']=(list(self.audio))
-        print(len(self.audio))
+            with open('./dataset/'+gameId+'_2step_feature.json',"rb") as f1:  
+                self.feature_result=json.load(f1)
+        with open('./dataset/'+gameId+'_video.pickle',"rb") as f3:  
+            self.video=pickle.load(f3)
+        self.video_result={}
+        self.video_result['test']=(list(self.video[gameId]))
+
         if d_type=='test':
             self.sample = ['test']
 
 
         
-        self.sum=np.insert(np.cumsum([len(self.chat_result[str(i)]) for i in self.sample]),0,0)
+        self.sum=np.insert(np.cumsum([len(self.feature_result[str(i)]) for i in self.sample]),0,0)
         print("data load fin")
 
         
@@ -49,17 +49,17 @@ class Mul_data(data.Dataset):
             window=[]#batch*7(window size)*3(highlight result)
             for idx in range(23): #7 : window size
                 s_window=[]
-                if vframe+idx<len(self.chat_result[game_id]):
-                    s_window.extend(self.chat_result[game_id][vframe+idx])#vframe의 chat
-                    s_window.extend(self.audio_result[game_id][(vframe+idx)*10:(vframe+idx+1)*10])#vframe의 audio
+                if vframe+idx<len(self.feature_result[game_id]):
+                    s_window.extend(self.feature_result[game_id][vframe+idx])#vframe의 chat
+                    s_window+=[(self.video_result[game_id][vframe+idx])]#vframe의 audio
 #                     s_window+=[(self.image_result[game_id][vframe+idx])]#vframe의 image
                 else:
                     #s_window=[0,0,0]#padding value
-                    s_window=[0]*138
+                    s_window=[0]*24
                 window.append(s_window)
             return game_id,np.array(window)
         
-input_size=138
+input_size=24
 hidden_size=23
 length=7
 num_layers=3
@@ -75,16 +75,14 @@ class LSTM(nn.Module):
         cell = Variable(torch.zeros(num_layers,x.size(0),hidden_size)) # (num_layers * num_directions, batch, hidden_size)        out,hidden = self._clf1(x,h0)
         feature,hidden = self._clf1(x,(hidden,cell))#batch*7*3
         out = self._lin(feature[:,-1,:])
-        return feature[:,-1,:]
+        return out
 def main(game_i):
     global gameId
     gameId=game_i
     model=LSTM()
     test=Mul_data('test')
-    print(len(test))
-    print(test[1832])
-    test_loader=torch.utils.data.DataLoader(test,batch_size=32)
-    dataset='./weights/chat_audio_best'
+    test_loader=torch.utils.data.DataLoader(test,batch_size=1)
+    dataset='./weights/2step_best'
     checkpoint=torch.load(dataset)
     model.load_state_dict(checkpoint)
     model.eval()
@@ -95,18 +93,34 @@ def main(game_i):
     fn_sum=0
     acc=0
     sum=0
-    result={}
+    result=[]
     with torch.no_grad():
         for it, (game_id,inputs) in enumerate(test_loader):
             inputs=inputs.float()
             output=model(inputs)
-            for idx,g in enumerate(game_id):
-                if g not in result.keys():
-                    print(g)
-                    result[g]=[output[idx].tolist()]
-                else:
-                    result[g].append(output[idx].tolist())
-    with open('./dataset/'+gameId+'_2step_feature.json','w') as f:
-        json.dump(result,f)
+            _, pred = output.topk(1, 1, True, True)
+            pred = pred.view(-1,1)
+            result.append(pred[0][0].item())
+    game_result=[]
+    s=''
+    e=''
+    flag=0
+    for idx,i in enumerate(result):
+        if i==1:
+            if flag==0:
+                s=idx
+                e=idx
+                flag=1
+            else:
+                e=idx
+        if i==0:
+            if flag==1:
+                game_result.append([str(s//60)+':'+str(s%60),str(e//60)+':'+str(e%60)])
+                flag=0
+    with open('./dataset/'+gameId+'_result.txt','w') as f:
+        f.write(str(game_result))
+            
+
+    
 if __name__ == "__main__":
     main('104841804589544588')

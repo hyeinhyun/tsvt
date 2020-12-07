@@ -17,8 +17,8 @@ import chat_model
 file=open('test.txt',"w",encoding="utf-8")
 ClientId = "pnbcpj842zq89uy7hlhkakepr6xej7" # Client id 추가 #
 
-
-def collectClip(v_id,  Clientid,v_stime,v_etime):
+game_id=''
+def collectClip(v_id,  Clientid,v_stime,v_etime,game_i):
     print(v_id)
     #url = "https://api.twitch.tv/kraken/video/top?channel=" + channel + "&limit=" + str(lim)
     url="https://api.twitch.tv/kraken/videos/"+str(v_id)
@@ -28,7 +28,7 @@ def collectClip(v_id,  Clientid,v_stime,v_etime):
     c = u.read().decode('utf-8')
     js = json.loads(c)
     #print(js)
-    f=open('./dataset/'+v_id+'.txt',"w",encoding="utf-8")
+    f=open('./dataset/'+game_id+'_chat.txt',"w",encoding="utf-8")
 
     return collectChat(js, Clientid, f,v_id,v_stime,v_etime)
 
@@ -105,27 +105,33 @@ def collectChat(j, clientId, f,v_id,v_stime,v_etime):
         except Exception as e:
             print(e)
     f.close()
-    print('==========Collect Finish===================')
+    print('==========Collect fin===================')
     makeChat(result,v_etime-v_stime,v_stime)
 def makeChat(result,dur,v_stime):
-    print('===========Start Preprocessing================')
+    print('==========Start preprocessing===================')
+    global game_id
     data={}
     chat_data=pd.DataFrame(result)
-    chat=['' for i in range(math.floor(float(dur))+1)]
+    chat=['' for i in range(math.floor(float(dur)))]
     for idx,i in enumerate(chat_data['intime']):
         chat[math.floor(float(i))-v_stime]+=str(chat_data['message'][idx])
     
     data['test']=chat
-    with open('./dataset/chat.json', 'w') as f:
+    with open('./dataset/'+game_id+'_chat.json', 'w') as f:
         json.dump(data, f, indent=2)
-    print('=========== Chat End===================')
-                
+    print('==========Chat end===================')
+    
+def main(v_id,Clientid,v_stime,v_etime,game_i):
+    global game_id
+    game_id=game_i
+    collectClip(v_id,Clientid,v_stime,v_etime,game_i)
+    print('==========Model train===================')
+    chat_model.main(game_id)
+    print('==========Model fin===================')
 if __name__ == "__main__":
 
 
-    collectClip("496371424",ClientId,0,1000)
-    print('===========Model train================')    
-    chat_model.main()
-    print('===========Model fin================')    
+    main("496371424",ClientId,0,10,'test1234')
+  
     
     

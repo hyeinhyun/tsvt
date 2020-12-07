@@ -18,6 +18,7 @@ import pickle
 
 all_letters = string.printable
 n_letters = len(all_letters)
+game_id=''
 def letterToIndex(letter):
     return all_letters.find(letter)
 def linesToTensor(lines):
@@ -62,7 +63,7 @@ class chat_ds(data.Dataset):
     def __init__(self,d_type):
         self.d_type=d_type
 
-        with open('./dataset/chat.json','rb') as f2:  
+        with open('./dataset/'+game_id+'_chat.json','rb') as f2:  
             self.text=json.load(f2)
         if d_type=='test':
             self.sample = ['test']
@@ -86,7 +87,9 @@ class chat_ds(data.Dataset):
                     win_text+=self.text[str(game_id)][vframe+idx]+'\n'
 
             return win_text,str(game_id)
-def main():
+def main(game_i):
+    global game_id
+    game_id=game_i
     ###### model load #####
     model=LangModel()
 
@@ -100,15 +103,15 @@ def main():
 
     result={}
     with torch.no_grad():
-        for it, (text,game_id) in enumerate(test_loader):
+        for it, (text,game_ii) in enumerate(test_loader):
             inputs=linesToTensor(text)
             inputs = inputs
             output=model(inputs)
-            if game_id[0] not in result.keys():
-                print(game_id[0])
-                result[game_id[0]]=[(output[0]).tolist()]
+            if game_ii[0] not in result.keys():
+                print(game_ii[0])
+                result[game_ii[0]]=[(output[0]).tolist()]
 
             else:
-                result[game_id[0]]+=[(output[0]).tolist()]
-    with open('./dataset/chat_features.json','w') as f:
+                result[game_ii[0]]+=[(output[0]).tolist()]
+    with open('./dataset/'+game_id+'_chat_features.json','w') as f:
         json.dump(result,f)

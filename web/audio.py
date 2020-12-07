@@ -4,7 +4,9 @@ import requests
 import urllib.parse
 import os
 import json
-
+from pydub import AudioSegment
+import audio_features
+game_id=''
 #Fancy!
 class bcolors:
     HEADER = '\033[95m'
@@ -61,17 +63,25 @@ def getDownloadUrl(video_id):
 					"&cdm=wv"
     return download_url
 
-def downloadVideo(video_id,v_stime,v_etime):
+def downloadVideo(video_id,v_stime,v_etime,game_id):
     video_infos = getVideoInfo(video_id)
     video_title = "'" + video_infos['title'] + "'"
-    command = "ffmpeg -i '"+ getDownloadUrl(video_id) +"' -ss {} -t {} -vn -acodec libmp3lame -ar 44.1k -ac 2 -ab 320k ".format(v_stime,v_etime)+ './dataset/'+str(video_title) + ".wav"
+    command = "ffmpeg -i '"+ getDownloadUrl(video_id) +"' -ss {} -t {} -vn -acodec libmp3lame -ar 44100 -ac 1 -ab 320k ".format(v_stime,v_etime)+ './dataset/'+str(game_id) + "_audio.mp3"
     os.system(command)
-def main(video_id,v_stime,v_etime):
-    #Arrays for video queue
-    match = []
-    #video_infos = getVideoInfo(video_id)
-    downloadVideo(video_id,v_stime,v_etime)  
-
+    src="./dataset"+str('/')+str(game_id) + "_audio.mp3"
+    sound = AudioSegment.from_mp3(src)
+    sound.export("./dataset"+str('/')+str(game_id)+ "_audio.wav", format="wav")
+    print(str(game_id)+"_audio.wav file is uploaded")
+def main(video_id,v_stime,dur,game_i):
+    global game_id
+    game_id=game_i
+    print('==========Collect start===================')
+    downloadVideo(video_id,v_stime,dur,game_id)  
+    print('==========Collect fin===================')
+    print('==========Feature extract===================')
+    
+    audio_features.main(game_id)
+    print('==========Finish extract===================')
 if __name__ == "__main__":
-    main('496371424',0,10)
+    main('496371424',0,10,'test1234')
 
